@@ -52,9 +52,11 @@ client.on('message', msg => {
   if (command === 'join') {
     // roleCMD(client, msg, args);
     sql
-      .get(`SELECT * FROM users WHERE uid = "${msg.author.id}"`)
+      .get(`SELECT * FROM users WHERE discordId = "${msg.author.id}"`)
       .then(row => {
         console.log(row, 'data?');
+        const message = `you've already joined! Create your Org with !createorg organization_name`;
+        msg.reply(message);
       })
       .catch(err => {
         console.log(err, 'asd');
@@ -67,6 +69,56 @@ client.on('message', msg => {
           });
       });
   }
+
+  if (command === 'createorg') {
+    // roleCMD(client, msg, args);
+    sql
+      .get(
+        `SELECT users.discordId, orgId, name FROM users LEFT JOIN organizations ON organizations.ownerId = users.discordId WHERE users.discordId = ${
+          msg.author.id
+        }`
+      )
+      .then(row => {
+        console.log(row, 'data?');
+      })
+      .catch(err => {
+        console.log(err, 'asd');
+        sql
+          .run(
+            'CREATE TABLE IF NOT EXISTS organizations (orgId INTEGER PRIMARY KEY AUTOINCREMENT, ownerId INTEGER, name text)'
+          )
+          .then(() => {
+            sql.run('INSERT INTO organizations (ownerId, name) VALUES (?, ?)', [
+              msg.author.id,
+              'test name',
+            ]);
+          });
+      });
+  }
+
+  if (command === 'getsouls') {
+    // roleCMD(client, msg, args);
+    // `SELECT souls.name, souls.soulId FROM souls LEFT JOIN organizations ON organizations.orgId = souls.orgId AND organizations.ownerId = 107363590914211840`
+    sql
+      .all(
+        `SELECT DISTINCT souls.soulId, souls.name , organizations.name AS orgName, souls.orgId, ownerId FROM 'organizations' LEFT JOIN 'souls' ON souls.orgId WHERE organizations.ownerId = ${
+          msg.author.id
+        };`
+      )
+      .then(row => {
+        console.log(row, 'souls?');
+      })
+      .catch(err => {
+        console.log(err, 'asd');
+        sql
+          .run(
+            'CREATE TABLE IF NOT EXISTS souls (soulId INTEGER PRIMARY KEY AUTOINCREMENT, orgId INTEGER, name text)'
+          )
+          .then(() => {
+            sql.run('INSERT INTO souls (orgId, name) VALUES (?, ?)', [1, 'test soul name']);
+          });
+      });
+  }
 });
 
 // CREATE TABLE Users (
@@ -75,14 +127,14 @@ client.on('message', msg => {
 // );
 
 // CREATE TABLE organizations (
-// 	organization integer,
+// 	orgId integer PRIMARY KEY AUTOINCREMENT,
 // 	ownerId integer,
 // 	name text
 // );
 
-// CREATE TABLE Souls (
-// 	soulId integer,
-// 	organizationId integer,
+// CREATE TABLE souls (
+// 	soulId integer PRIMARY KEY AUTOINCREMENT,
+// 	orgId integer,
 // 	name text
 // );
 
